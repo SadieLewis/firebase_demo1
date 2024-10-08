@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart' //new
         PhoneAuthProvider;
 import 'package:flutter/material.dart';
 import 'package:gtk_flutter/guest_book.dart';
-import 'package:gtk_flutter/yes_no_selection.dart';
+import 'package:gtk_flutter/people_attending.dart';
 import 'package:provider/provider.dart';
 
 import 'app_state.dart';
@@ -55,15 +55,18 @@ class HomePage extends StatelessWidget {
             builder: (context, appState, _) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                switch (appState.attendees) {
-                  1 => const Paragraph('1 person going'),
-                  >= 2 => Paragraph('${appState.attendees} people going'),
-                  _ => const Paragraph('No one going'),
-                },
+                Text(
+                  appState.attendees == 0
+                      ? '  No one going'
+                      : (appState.attendees == 1
+                          ? ' 1 person going'
+                          : '  ${appState.attendees} people going'),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
                 if (appState.loggedIn) ...[
-                  YesNoSelection(
-                    state: appState.attending,
-                    onSelection: (attending) => appState.attending = attending,
+                  PeopleAttending(
+                    attendees: appState.userAttendees,
+                    onAttendeeChange: (count) => appState.userAttendees = count,
                   ),
                   const Header('Discussion'),
                   GuestBook(

@@ -34,10 +34,11 @@ class ApplicationState extends ChangeNotifier {
 
     FirebaseFirestore.instance
         .collection('attendees')
-        .where('attending', isEqualTo: true)
         .snapshots()
         .listen((snapshot) {
-      _attendees = snapshot.docs.length;
+      _attendees = snapshot.docs.fold(0, (total, doc) {
+        return total + (doc.data()['count'] as int? ?? 0);
+      });
       notifyListeners();
     });
 
@@ -65,15 +66,15 @@ class ApplicationState extends ChangeNotifier {
             .doc(user.uid)
             .snapshots()
             .listen((snapshot) {
-          if (snapshot.data() != null) {
-            if (snapshot.data()!['attending'] as bool) {
-              _attending = Attending.yes;
-            } else {
-              _attending = Attending.no;
-            }
+          if (snapshot.exists) {
+            _userAttendees = snapshot.data()!['count'] as int? ?? 0;
+            _attending = snapshot.data()!['attending'] as bool
+                ? Attending.yes
+                : Attending.no;
           } else {
-            _attending = Attending.unknown;
+            _userAttendees = 0;
           }
+          notifyListeners();
           notifyListeners();
         });
       } else {
@@ -104,9 +105,23 @@ class ApplicationState extends ChangeNotifier {
   int _attendees = 0;
   int get attendees => _attendees;
 
+  int _userAttendees = 0;
+  int get userAttendees => _userAttendees;
+
+  set userAttendees(int count) {
+    final userDoc = FirebaseFirestore.instance
+        .collection('attendees')
+        .doc(FirebaseAuth.instance.currentUser!.uid);
+    userDoc.set(<String, dynamic>{
+      'count': count,
+      'attending': count > 0,
+    });
+  }
+
   Attending _attending = Attending.unknown;
   StreamSubscription<DocumentSnapshot>? _attendingSubscription;
   Attending get attending => _attending;
+
   set attending(Attending attending) {
     final userDoc = FirebaseFirestore.instance
         .collection('attendees')
